@@ -1,0 +1,27 @@
+div.inline-two-box {
+	display: inline-block;
+	vertical-align: top;
+	width: 49%;
+	height: 90%;
+}
+
+div.inline-two-box p{
+	margin-left: 20px;
+	vertical-align: text-top;
+	text-align: left;
+}
+
+/* ハックでIE6,7のみに適用 */
+html*.box {
+	display: inline;
+	zoom: 1;
+}
+
+.reveal li {
+	margin-bottom: 15px;
+	font-size: 90%;
+}
+
+.reveal li.no-margin {
+	margin-bottom: 0px;
+}

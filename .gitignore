@@ -1,0 +1,5 @@
+fig/*
+!fig/*.png
+fig/*/*
+!fig/*/*.png
+*.swp

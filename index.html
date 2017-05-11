@@ -291,7 +291,6 @@
 				<section>
 					<section style="text-align: left;">
 						<h2>合金へMCMCを応用しよう</h2>
-						<br>
 						<p>確率（再掲）：$ P(\vec{\sigma}, \beta) \propto \exp (-\beta E(\vec{\sigma})) $ </p>
 						<p>これをカノニカル分布と呼ぶ</p>
 						<p>目的：MCMCを使って期待値（内部エネルギー）を計算する</p>
@@ -306,7 +305,14 @@
 
 					<section style="text-align: left;">
 						<h2>合金へMCMCを応用しよう</h2>
-						<br>
+						<p>遷移確率を以下のように設定すると，不変分布はカノニカル分布になる（メトロポリス法）</p>
+						$$
+							\pi (\vec{\sigma} \to \vec{\sigma}')
+							= {\rm min} \{ 1, \exp( - \beta( E(\vec{\sigma}') - E(\vec{\sigma}) )  )  \}
+						$$
+						<p>後述する以下の詳細釣り合い条件を満たすように設計されている</p>
+						$$ P(\vec{\sigma}) \pi (\vec{\sigma} \to \vec{\sigma}') =  P(\vec{\sigma}') \pi (\vec{\sigma}' \to \vec{\sigma}) $$
+						<p>今の原子配置から適当な異種原子同士を交換して１ステップとする</p>
 						<table>
 							<thead>
 								<tr>
@@ -340,13 +346,9 @@
 								</tr>
 							</tbody>
 						</table>
-						<br>
-						<p>遷移確率を以下のように設定すると，不変分布はカノニカル分布になる（メトロポリス法）</p>
-						$$
-							\pi (\vec{\sigma} \to \vec{\sigma}')
-							= {\rm min} \{ 1, \exp( - \beta( E(\vec{\sigma}') - E(\vec{\sigma}) )  )  \}
-						$$
 						<p>期待値 ： $\langle E \rangle = \sum_{t=1}^N E(\vec{\sigma}_t) / N$</p>
+
+
 					</section>
 				</section>
 
@@ -433,6 +435,31 @@
 							<li>$P_0 = P + \sum_{\alpha} c_\alpha V_\alpha$</li>
 							<li>$P_m = T^m P_0 =  P + \sum_{\alpha} c_\alpha \lambda_\alpha^m V_\alpha$</li>
 							<li>ペロン・フロベニウスの定理より$|\lambda_\alpha|<1$</li>
+						</ul>
+
+					</section>
+
+				</section>
+
+
+				<section>
+					<section style="text-align: left;">
+						<h2>MCMCの利点と欠点</h2>
+
+						<ul>
+							<li>応用範囲が広い/実装が簡単</li>
+							<li>期待値が計算できる</li>
+						</ul>
+
+						<ul>
+							<li>分布の局所性を仮定しているので，多峰性の分布のサンプルに向かない</li>
+							<ul><li>解決策：flat-histogram method (e.g., multi-canonical, Wang-Landau...)</li></ul>
+							<li>モーメントしか計算できない（期待値，分散など）</li>
+							<li>グラフ上のノードにボトルネックが存在すると収束が遅くなる</li>
+							<li>i.e., $\{ \lambda_\alpha \}$の一番高い固有値の大きさによって収束速度が変わる</li>
+							<ul>
+								<li>解決策：詳細釣り合いを満たさないMCMC，Event-chain MC...</li>
+							</ul>
 						</ul>
 
 					</section>

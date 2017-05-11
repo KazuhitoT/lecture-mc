@@ -1,16 +1,25 @@
 <!doctype html>
-<html>
+<html lang="en">
+
 	<head>
 		<meta charset="utf-8">
+
+		<title>Monte Carlo simulation</title>
+
+		<meta name="description" content="How to use Monte Carlo simulation on alloy studies">
+		<meta name="author" content="Kazuhito Takeuchi">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>reveal.js</title>
-
 		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css">
+		<link rel="stylesheet" href="css/theme/white.css" id="theme">
 
 		<!-- Theme used for syntax highlighting of code -->
 		<link rel="stylesheet" href="lib/css/zenburn.css">
+		<link rel="stylesheet" href="index.css">
 
 		<!-- Printing and PDF exports -->
 		<script>
@@ -19,31 +28,534 @@
 			link.type = 'text/css';
 			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
 			document.getElementsByTagName( 'head' )[0].appendChild( link );
-		</script>
+		</script>	<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
 	</head>
+
 	<body>
+
 		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				<section>
+					<h1>マルコフ連鎖<br>モンテカルロ法</h1>
+					<h3>乱数を用いた数値計算手法について</h3>
+					<p>
+						<small>Created by Kazuhito Takeuchi</small>
+					</p>
+				</section>
+
+				<section style="text-align: left;">
+					<h2>このスライドの目的</h2>
+					<ul>
+						<li>（学部）モンテカルロ法に触れてもらう</li>
+						<li>（修士）MCMCについてなんとなく理解してもらう</li>
+					</ul>
+					<br>
+					<br>
+					<h2>目次</h2>
+					<ol>
+						<li>モンテカルロ法とは？</li>
+						<li>モンテカルロ法の限界</li>
+						<li>マルコフ連鎖モンテカルロ法</li>
+						<li>不変分布の一意性</li>
+						<li>まとめ</li>
+					</ol>
+				</section>
+
+				<section style="text-align: left;">
+					<h2>モンテカルロ法とは？</h2>
+					<h3>Monte Carlo (MC)</h3>
+					<ul>
+					<li>乱数を使った計算手法の総称</li>
+					<li>数値計算（シミュレーション）では擬似乱数を使う</li>
+					<ul>
+						<li>線形合同法（一番単純なやつ・低コスト）</li>
+						<li>メルセンヌ・ツイスタ法（すごいやつ・若干高コスト）</li>
+						<li>xorshift（そこそこすごくて低コスト）</li>
+						<li>など…</li>
+					</ul>
+					<li>要はサイコロを転がして色々計算しようという手法</li>
+				</section>
+
+				<section>
+					<section>
+						<h2>円周率の計算</h2>
+						<!-- <p>乱数はMersenne Twister</p> -->
+						<div class="inline-two-box">
+							<img src="fig/pi/pi-100.png">
+						</div>
+						<div class="inline-two-box">
+							<p>$\pi = 0$</p>
+							<p>$ x, y \in [0, 1] $</p>
+							<p>while $ N $ :</p>
+							<p>　if　$x^2 + y^2 \leq 1 $ :</p>
+							<p>　　　$\pi += 1 $</p>
+						</div>
+						<p>試行回数100回：$ \pi = 2.96 $</p>
+					</section>
+					<section>
+						<h2>円周率の計算</h2>
+						<!-- <p>乱数はMersenne Twister</p> -->
+						<div class="inline-two-box">
+							<img src="fig/pi/pi-1000.png">
+						</div>
+						<div class="inline-two-box">
+							<p>$\pi = 0$</p>
+							<p>$ x, y \in [0, 1] $</p>
+							<p>while $ N $ :</p>
+							<p>　if　$x^2 + y^2 \leq 1 $ :</p>
+							<p>　　　$\pi += 1 $</p>
+						</div>
+						<p>試行回数1000回：$ \pi = 3.168 $</p>
+					</section>
+					<section>
+						<h2>円周率の計算</h2>
+						<!-- <p>乱数はMersenne Twister</p> -->
+						<div class="inline-two-box">
+							<img src="fig/pi/pi-10000.png">
+						</div>
+						<div class="inline-two-box">
+							<p>$\pi = 0$</p>
+							<p>$ x, y \in [0, 1] $</p>
+							<p>while $ N $ :</p>
+							<p>　if　$x^2 + y^2 \leq 1 $ :</p>
+							<p>　　　$\pi += 1 $</p>
+						</div>
+						<p>試行回数10000回：$ \pi = 3.1356 $</p>
+					</section>
+					<section>
+						<h2>円周率の計算</h2>
+						<img width="60%" height="60%" src="fig/pi/result.png">
+						<p>試行回数を増やすと誤差が減る</p>
+					</section>
+				</section>
+
+
+				<section style="text-align: left;">
+					<h2>単純なモンテカルロ法(MC)の限界</h2>
+					<p>半径1の$N$次元球の体積$$ V_N = \frac{\pi^{N/2}}{(N/2)!} $$</p>
+					<p>球を囲む$N$次元立方体の体積は$2^N$</p>
+					<p>球にヒットする確率$$ \frac{\pi^{N/2}}{2^N(N/2)!} $$</p>
+					<p>高次元・多変量になるほど計算効率が著しく低下する</p>
+					<p>例えば…2次元円と3次元球を比較すると分かりやすいかも</p>
+				</section>
+
+				<section>
+					<section style="text-align: left;">
+						<h2>合金（スピン系）でのMC</h2>
+						<div class="inline-two-box">
+							<center><img src="fig/alloy/poscar_order_trim.png" width="210px" height="210px"><br>確率高</center>
+						</div>
+						<div class="inline-two-box">
+							<center><img src="fig/alloy/poscar_rand.png" width="210px" height="210px"><br>確率低（ほぼゼロ）</center>
+						</div>
+						<p>高次元球と同じような問題が合金でも起こる</p>
+						<p>合金：$ \vec{\sigma} = \{ \sigma_i, \sigma_j, \sigma_k,... \} \quad  ( \sigma_i = {\rm A \ or \ B} ) $</p>
+						<p>確率：$ P(\vec{\sigma}, \beta) \propto \exp (-\beta E(\vec{\sigma})) $ </p>
+						<p>エネルギーの期待値：$ E(\beta) = \sum_{\vec{\sigma}} E(\vec{\sigma}) P(\vec{\sigma}, \beta) $ </p>
+					</section>
+					<section style="text-align: left;">
+						<h2>どこが問題なの？</h2>
+						<ul>
+							<li>エネルギーの期待値を正しく評価したい</li>
+							<li>重みが効くところをサンプルしたい</li>
+							<ul>
+								<li>例) 秩序的な配列を持つとエネルギーが下がる合金の場合</li>
+								<li>適当に金属を並べた時，規則正しく配列する確率はどれくらいか？</li>
+								<li>２元系だと $\propto \frac{1}{2^N}$でとても低い</li>
+								<li>円周率の次元/原子の数の多さ = 多自由度系における困難</li>
+							</ul>
+							<li>つまり，適当にサンプルすると無駄が多い...</li>
+							<li>いい感じにサンプルするアルゴリズムを探そう！</li>
+							<li>期待値を計算する手法としての「<u>マルコフ連鎖モンテカルロ法</u>」</li>
+						</ul>
+					</section>
+				</section>
+
+				<section>
+					<section style="text-align: left;">
+						<h2>マルコフ連鎖モンテカルロ法(MCMC)</h2>
+						<p>マルコフ連鎖：現在の状態は１つ前の状態のみによる</p>
+						<ul>
+							<li>【例】今日は中華だったから,明日は和食にする確率は$1/3$</li>
+							<li>　　　今日は中華だったから,明日も中華にする確率は$2/3$</li>
+							<li>　　　今日は和食だったから,明日も和食にする確率は$1/4$</li>
+							<li>　　　今日は和食だったから,明日は中華にする確率は$3/4$</li>
+							<li>　　　おとといの食事は考えない</li>
+							<li>　　　$A_t$と$B_t$はそれぞれ和食・中華にする確率</li>
+						</ul>
+						<p></p>
+						$$
+						\begin{pmatrix}
+							A_{t+1} \\
+							B_{t+1} \\
+						\end{pmatrix}
+						=
+						\begin{pmatrix}
+							\frac{1}{3} & \frac{1}{4} \\
+							\frac{2}{3} & \frac{3}{4}  \\
+						\end{pmatrix}
+						\begin{pmatrix}
+							A_{t} \\
+							B_{t} \\
+						\end{pmatrix}
+						$$
+					</section>
+					<section style="text-align: left;">
+						<h2>マルコフ連鎖モンテカルロ法(MCMC)</h2>
+						<p>この漸化式を解くと不変分布$A_{\infty}, B_{\infty}$が得られる</p>
+						$$
+						\begin{pmatrix}
+							A_{\infty} \\
+							B_{\infty} \\
+						\end{pmatrix}
+						=
+						\begin{pmatrix}
+							\frac{3}{11} \\
+							\frac{8}{11} \\
+						\end{pmatrix}
+
+						\quad
+
+						\begin{pmatrix}
+							A_{\infty} \\
+							B_{\infty} \\
+						\end{pmatrix}
+						=
+						\begin{pmatrix}
+							\frac{1}{3} & \frac{1}{4} \\
+							\frac{2}{3} & \frac{3}{4}  \\
+						\end{pmatrix}
+						\begin{pmatrix}
+							A_{\infty} \\
+							B_{\infty} \\
+						\end{pmatrix}
+						$$
+						<p>　</p>
+						<p>不変分布が分かれば期待値が計算できる</p>
+						<p>不変分布は固有ベクトルに対応</p>
+						<!-- <p>不変分布が収束する十分条件：詳細釣り合い条件</p>
+						<p>$$ P(x) \pi(x \to x') = P(x') \pi(x' \to x) $$</p>
+						<p>$x$は状態，遷移確率$\pi$のもとで$P(x)$が不変分布になる</p> -->
+					</section>
+					<section style="text-align: left;">
+						<h2>マルコフ連鎖モンテカルロ法(MCMC)</h2>
+						<p>今度は漸化式を解かずに，実際にシミュレーションすると</p>
+						<p><b>サンプル数の割合が不変分布に従っていることがわかる</b></p>
+						<!-- <p>あらかじめ不変分布が分からないことが多い</p> -->
+						<!-- <p>→状態$\sigma_t$の遷移と不変分布からのサンプリングが対応</p> -->
+						<table>
+							<thead>
+								<tr>
+									<th>ステップ数</th>
+									<th>1</th>
+									<th>2</th>
+									<th>...</th>
+									<th>t</th>
+									<th>t+1</th>
+									<th>...</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td style="text-align: center;">状態</td>
+									<td>A</td>
+									<td>B</td>
+									<td>...</td>
+									<td>B</td>
+									<td>A</td>
+									<td>...</td>
+								</tr>
+							</tbody>
+						</table>
+						<center><img src="fig/ab/ab.png" width="50%"></center>
+
+					</section>
+					<section style="text-align: left;">
+						<h2>MCMCまとめ</h2>
+						<ul>
+							<li>一つ前の状態にのみ依存するモデル</li>
+							<li>(期待値に効く近くの状態も効くだろうという仮定)</li>
+							<li>不変分布（確率分布）を明らかにして期待値を計算</li>
+							<li>完全な状態行列があれば漸化式（固有値問題）を解く</li>
+							<li>なければサンプルした時系列から期待値を計算</li>
+							<li>（これが非常に強力　サイコロを転がすだけで良い）</li>
+						</ul>
+					</section>
+				</section>
+
+
+				<section>
+					<section style="text-align: left;">
+						<h2>合金へMCMCを応用しよう</h2>
+						<br>
+						<p>確率（再掲）：$ P(\vec{\sigma}, \beta) \propto \exp (-\beta E(\vec{\sigma})) $ </p>
+						<p>これをカノニカル分布と呼ぶ</p>
+						<p>目的：MCMCを使って期待値（内部エネルギー）を計算する</p>
+						<br>
+						<ul>
+							<li>さっきと同じように漸化式を解けば良い？</li>
+							<li>状態の数が$2^N$あるので大きい系では現実的に無理…</li>
+							<li>でも，サンプルの時系列が不変分布に対応している</li>
+							<li><b>不変分布がカノニカル分布になるように遷移確率を設計できれば，サンプルの時系列から期待値を計算できる</b></li>
+						</ul>
+					</section>
+
+					<section style="text-align: left;">
+						<h2>合金へMCMCを応用しよう</h2>
+						<br>
+						<table>
+							<thead>
+								<tr>
+									<th>ステップ数</th>
+									<th>1</th>
+									<th>2</th>
+									<th>...</th>
+									<th>t</th>
+									<th>t+1</th>
+									<th>...</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td style="text-align: center;">合金</td>
+									<td>$\vec{\sigma}_1$</td>
+									<td>$\vec{\sigma}_2$</td>
+									<td>...</td>
+									<td>$\vec{\sigma}_t$</td>
+									<td>$\vec{\sigma}_{t+1}$</td>
+									<td>...</td>
+								</tr>
+								<tr>
+									<td style="text-align: center;">エネルギー</td>
+									<td>$E(\vec{\sigma}_1)$</td>
+									<td>$E(\vec{\sigma}_2)$</td>
+									<td>...</td>
+									<td>$E(\vec{\sigma}_t)$</td>
+									<td>$E(\vec{\sigma}_{t+1})$</td>
+									<td>...</td>
+								</tr>
+							</tbody>
+						</table>
+						<br>
+						<p>遷移確率を以下のように設定すると，不変分布はカノニカル分布になる（メトロポリス法）</p>
+						$$
+							\pi (\vec{\sigma} \to \vec{\sigma}')
+							= {\rm min} \{ 1, \exp( - \beta( E(\vec{\sigma}') - E(\vec{\sigma}) )  )  \}
+						$$
+						<p>期待値 ： $\langle E \rangle = \sum_{t=1}^N E(\vec{\sigma}_t) / N$</p>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h2>CuAu合金</h2>
+
+						<img src="fig/profile/profile.png" width="70%">
+						<p> @ T=600[K] </p>
+						<p> 期待値 ：　$ E(\beta) = \sum_{\vec{\sigma}} E(\vec{\sigma}) P(\vec{\sigma}, \beta) $ </p>
+					</section>
+					<section>
+						<h2>CuAu合金</h2>
+						<div class="inline-two-box">
+							<img src="fig/cuau.png" width="100%">
+						</div>
+						<div class="inline-two-box">
+							<img src="fig/phasetrans.png" width="100%">
+							<br>高温状態と低温状態
+						</div>
+						<p> 各温度で期待値をプロット </p>
+						<p> 一次の規則不規則相転移をMCMCで表現できた </p>
+					</section>
+				</section>
+
+				<section>
+					<section style="text-align: left;">
+						<h2>MCMCは常に使えるの？</h2>
+						<br>
+						<ul>
+							<li>いいえ</li>
+							<li>とはいえかなり応用範囲が広い</li>
+							<li>不変分布が一意に存在するためには以下の条件が必要</li>
+							<ul>
+								<li>エルゴード性（全ての状態へ遷移できるか）</li>
+								<li>釣り合いの条件（確率の収支があっているか）</li>
+							</ul>
+							<li>スピンフリップ/原子の交換ではエルゴード性は満たされる</li>
+							<li>より厳しい詳細釣り合い条件がよく使われる（設計しやすい）</li>
+						</ul>
+					</section>
+
+
+					<section style="text-align: left;">
+						<h2>不変分布の一意性</h2>
+						<p>証明のポイントは初期分布$P_0(x)$から$m$回遷移したあとの$P_m(x)$について，不変分布以外の部分がゼロに収束するように表現する点</p>
+
+						$$
+							P_1(x) = cP(x) + (1-c)R_1(x)
+						$$
+
+
+						$$
+							P_2(x) = \{ 1- (1-c)^2 \} P(x) + (1-c)^2 R_2(x)
+						$$
+
+						<center><p>......</p></center>
+						$$
+							P_m(x) = \{ 1- (1-c)^m \} P(x) + (1-c)^m R_m(x)
+						$$
+
+						<p>ここで</p>
+
+						<ul>
+							<li>$P(x)$は不変分布</li>
+							<li> $ 0 \lt c \lt 1 $ </li>
+							<li> $ R_1(x) $ は$x$の確率分布 </li>
+							<li>$ m \to \infty$ で$P_m(x)$は不変分布に収束</li>
+						</ul>
+
+					</section>
+
+					<section style="text-align: left;">
+						<h2>それっぽい証明の手順</h2>
+
+						<p>すごく大雑把なので細かい話は調べて下さい</p>
+						<ul>
+							<li>分布をベクトル，分布の遷移を行列として扱える</li>
+							<li>（状態と遷移行列はグラフ理論の点と隣接行列に対応）</li>
+							<li>$P$を不変分布（ベクトル），$T$を遷移行列として$P = TP$ </li>
+							<li>固有値を$\{ \lambda_\alpha \}$，固有ベクトルを$\{ V_\alpha \}$とする</li>
+							<li>任意の初期分布を正規直交系の固有ベクトルで展開</li>
+							<li>ここで不変分布$P$の固有値は1であることに注意して</li>
+							<li>$P_0 = P + \sum_{\alpha} c_\alpha V_\alpha$</li>
+							<li>$P_m = T^m P_0 =  P + \sum_{\alpha} c_\alpha \lambda_\alpha^m V_\alpha$</li>
+							<li>ペロン・フロベニウスの定理より$|\lambda_\alpha|<1$</li>
+						</ul>
+
+					</section>
+
+				</section>
+
+				<!-- <section>
+					<section style="text-align: left;">
+						<h2>詳細釣り合い条件</h2>
+						<p>不変分布の収束条件：既約性，非周期性，詳細釣り合い</p>
+						<br>
+						<p>マルコフ連鎖における合金の状態の更新</p>
+						<p>$\vec{\sigma} \to \vec{\sigma}'$：無作為に選んだA原子とB原子を交換</p>
+						<p>　→　既約性と非周期性が満たされる</p>
+						<br>
+						<p>詳細釣り合い条件</p>
+						$$ P(\vec{\sigma}) \pi (\vec{\sigma} \to \vec{\sigma}') =  P(\vec{\sigma}') \pi (\vec{\sigma}' \to \vec{\sigma}) $$
+						<p>$ P(\vec{\sigma}) $：不変分布，　$\pi$：遷移確率</p>
+					</section>
+
+					<section style="text-align: left;">
+						<h2>詳細釣り合い条件</h2>
+
+
+						$$ P(\vec{\sigma}) \pi (\vec{\sigma} \to \vec{\sigma}') =  P(\vec{\sigma}') \pi (\vec{\sigma}' \to \vec{\sigma}) $$
+
+						$$
+							\frac{\pi (\vec{\sigma} \to \vec{\sigma}')} {\pi (\vec{\sigma}' \to \vec{\sigma})}
+							=  \frac{P(\vec{\sigma}') } { P(\vec{\sigma}) }
+							= r
+						$$
+
+						<p>メトロポリス法</p>
+						<ul>
+							<li>$ r \geq 1 $ならば，候補$\vec{\sigma}'$を受理する（$\vec{\sigma}'= \vec{\sigma}_{t+1}$）</li>
+							<li>$ r < 1 $ならば，確率$r$で$\vec{\sigma}'$を受理する<br>
+								　　　　　　　　それ以外は棄却（$\vec{\sigma}= \vec{\sigma}_{t+1}$）</li>
+
+						<p>実際に計算してみると，詳細釣り合い条件を満たす</p>
+
+					</section>
+
+					<section style="text-align: left;">
+						<h2>詳細釣り合い条件</h2>
+
+						$$
+							\frac{\pi (\vec{\sigma} \to \vec{\sigma}')} {\pi (\vec{\sigma}' \to \vec{\sigma})}
+							=  \frac{P(\vec{\sigma}') } { P(\vec{\sigma}) }
+							= r
+						$$
+
+						<p>$r$は$P(\vec{\sigma})$と$P(\vec{\sigma}')$の比で決まる</p>
+						<p>合金では$ P(\vec{\sigma}, \beta) \propto \exp (-\beta E(\vec{\sigma})) $</p>
+
+						<p>メトロポリス法（合金版）</p>
+						$$
+							\pi (\vec{\sigma} \to \vec{\sigma}')
+							= {\rm min} \{ 1, \exp( - \beta( E(\vec{\sigma}') - E(\vec{\sigma}) )  )  \}
+						$$
+
+					</section> -->
+				</section>
+
+				<section style="text-align: left;">
+					<h1>まとめ</h1>
+					<ul>
+						<li>モンテカルロ法は乱数を使った数値計算手法</li>
+						<li>マルコフ連鎖モンテカルロ法(MCMC)は多自由度の計算が得意</li>
+						<li>MCMC法は不変分布からのサンプリング手法</li>
+						<ul>
+							<li>エルゴード性</li>
+							<li>（詳細）釣り合いの条件</li>
+						</ul>
+						<li>遷移確率を設計して，不変分布をカノニカル分布する</li>
+					</ul>
+					<br>
+					<br>
+					<h4>MCMCを使う時は，どの不変分布からサンプルしているかを常に意識しよう！</h4>
+				</section>
+
+				<section style="text-align: left;">
+					<h1>参考文献</h1>
+					<p>
+						- 伊庭幸人ほか(2005)『計算統計 2 マルコフ連鎖モンテカルロ法とその周辺 (統計科学のフロンティア 12)』岩波書店． <br>
+						- teramonagi「マルコフ連鎖モンテカルロ法入門-１」，<http://www.slideshare.net/teramonagi/ss-5190440> 2016年5月27日アクセス
+					</p>
+				</section>
+
 			</div>
+
 		</div>
 
 		<script src="lib/js/head.min.js"></script>
 		<script src="js/reveal.js"></script>
 
 		<script>
-			// More info about config & dependencies:
-			// - https://github.com/hakimel/reveal.js#configuration
-			// - https://github.com/hakimel/reveal.js#dependencies
+
+			// More info https://github.com/hakimel/reveal.js#configuration
 			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+				math: {
+					mathjax: 'https://cdn.mathjax.org/mathjax/latest/MathJax.js',
+					// mathjax: 'MathJax-master/MathJax.js',
+					config: 'TeX-AMS_HTML-full'  // See http://docs.mathjax.org/en/latest/config-files.html
+				},
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
 				dependencies: [
-					{ src: 'plugin/markdown/marked.js' },
-					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
 					{ src: 'plugin/notes/notes.js', async: true },
-					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+					{ src: 'plugin/math/math.js', async: true }
 				]
 			});
+
 		</script>
+
 	</body>
 </html>

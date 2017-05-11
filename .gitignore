@@ -1,5 +1,10 @@
 fig/*
 !fig/*.png
 fig/*/*
+!fig/ab/
+!fig/alloy/
+!fig/mcmc_pi
+!fig/pi
+!fig/profile
 !fig/*/*.png
 *.swp
